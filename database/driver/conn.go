@@ -42,7 +42,7 @@ type DBAdapter struct {
 	executeAffectedCount int64
 }
 
-func CreateMySQLDriver(config *Config) (db *DBAdapter) {
+func CreateMySqlDriver(config *Config) (db *DBAdapter) {
 	//format database config
 	configFormat(config)
 

@@ -22,7 +22,7 @@ func init(){
 
 //type ormLog struct {}
 
-func CreateMysql(conf *DBConf) (db *gorm.DB) {
+func CreateMySqlOrm(conf *DBConf) (db *gorm.DB) {
 	db, _ = gorm.Open("mysql", conf.DNS)
 	db.DB().SetMaxIdleConns(conf.MaxIdleConns)
 	db.DB().SetMaxOpenConns(conf.MaxOpenConns)

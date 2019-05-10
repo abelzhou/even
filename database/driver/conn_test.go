@@ -39,7 +39,7 @@ func TestCreateMySQLDriver(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 	res, err := db.FetchOne("SELECT * FROM usertest")
 	if err != nil {
 		log.Fatal(err)
@@ -64,7 +64,7 @@ func TestDBAdapter_FetchAll(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 	res, err := db.FetchAll("SELECT * FROM `usertest`")
 	if err != nil {
 		log.Fatal(err)
@@ -96,7 +96,7 @@ func TestDBAdapter_Execute(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 	now := time.Now()
 	id, err := db.Execute(insertSql, "12877717278", "abc", now, now).LastInsertID()
 	if err != nil {
@@ -140,7 +140,7 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 
 	if err := db.Begin(); err != nil {
 		panic(err)
@@ -199,7 +199,7 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := db.FetchOne("SELECT * FROM usertest")

@@ -1,4 +1,4 @@
-module even
+module github.com/AbelZhou/even
 
 go 1.12
 

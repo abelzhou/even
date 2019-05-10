@@ -172,7 +172,7 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 	}
 	if checkUser != nil {
 		t.Errorf("Rollback failed after rollback operation.")
-	}else {
+	} else {
 		t.Log("Rollback success.")
 	}
 }
@@ -180,14 +180,14 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 func BenchmarkCreateMySQLDriver(b *testing.B) {
 	var config = &Config{
 		Write: &DBConfig{
-			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?parseTime=true&loc=Local",
+			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
 		Read: []*DBConfig{
 			{
-				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?parseTime=true&loc=Local",
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
 			{
-				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?parseTime=true&loc=Local",
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
 		},
 		DefIdleTimeout: 200,
@@ -195,8 +195,41 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 		DefMaxActive:   20,
 	}
 	db := CreateMySQLDriver(config)
-	_, err := db.FetchOne("SELECT * FROM usertest")
-	if err != nil {
-		log.Fatal(err)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := db.FetchOne("SELECT * FROM usertest")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+}
+
+func BenchmarkDBAdapter_Insert(b *testing.B) {
+	var config = &Config{
+		Write: &DBConfig{
+			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+		},
+		Read: []*DBConfig{
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+		},
+		DefIdleTimeout: 200,
+		DefMaxIdle:     10,
+		DefMaxActive:   20,
+	}
+	db := CreateMySQLDriver(config)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		insertId, err := db.Execute("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()
+		if err != nil {
+			panic(err)
+		} else {
+			b.Logf("Insert user:id[%d] \n", insertId)
+		}
 	}
 }

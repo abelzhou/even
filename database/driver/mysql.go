@@ -10,10 +10,10 @@ import (
 	goSQLDriver "github.com/go-sql-driver/mysql"
 )
 
-type EvenMySQLDriver struct {
+type EvenMySqlDriver struct {
 	goSQLDriver.MySQLDriver
 }
 
 func init() {
-	sql.Register("even_mysql", &EvenMySQLDriver{})
+	sql.Register("even_mysql", &EvenMySqlDriver{})
 }

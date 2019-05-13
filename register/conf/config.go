@@ -6,6 +6,7 @@
 package conf
 
 import (
+	"fmt"
 	"github.com/AbelZhou/even/database"
 	"strconv"
 )
@@ -55,7 +56,7 @@ func (c *Conf) GetDBConf(dbtag string) *database.Config {
 	defMaxActive := 10
 	defMaxIdle := 5
 	defIdleTimeout := 300
-	prefix := "/dbconfig" + "/" + dbtag
+	prefix := "/dbconf" + "/" + dbtag
 
 	defMaxActive, _ = strconv.Atoi(c.driver.Read(prefix + "/DefMaxActive"))
 	defMaxIdle, _ = strconv.Atoi(c.driver.Read(prefix + "/DefMaxIdle"))
@@ -81,7 +82,7 @@ func (c *Conf) GetDBConf(dbtag string) *database.Config {
 	var readers []*database.DBConfig
 	idx := 0
 	for {
-		readerName := "read" + string(idx)
+		readerName := fmt.Sprintf("read%d", idx)
 		readDsn := c.driver.Read(prefix + "/" + readerName + "/DSN")
 		if readDsn == "" {
 			break

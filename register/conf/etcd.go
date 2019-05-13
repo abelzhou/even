@@ -11,27 +11,32 @@ import (
 	"time"
 )
 
-type EtcdDriver struct {
-	client *clientv3.Client
-}
-
-// create etcd sql.
 // endpoints example: []string{"localhost:2379", "localhost:22379", "localhost:32379"}
 // DialTimeout is second.
-func CreateEtcdDriver(endpoints []string, dialTimeout int, username string, password string) *EtcdDriver {
+type EtcdDriver struct {
+	client      *clientv3.Client
+	DialTimeout int
+	Endpoints   []string
+	Username    string
+	Password    string
+}
+
+//open conn
+func (ed *EtcdDriver) Open() {
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
-		DialTimeout: time.Duration(dialTimeout) * time.Second,
-		Username:    username,
-		Password:    password,
+		Endpoints:   ed.Endpoints,
+		DialTimeout: time.Duration(ed.DialTimeout) * time.Second,
+		Username:    ed.Username,
+		Password:    ed.Password,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	return &EtcdDriver{client: cli}
+	ed.client = cli
 }
 
+//read conf
 func (ed *EtcdDriver) Read(key string) string {
 	response, err := ed.client.Get(context.TODO(), key)
 	if err != nil {
@@ -43,6 +48,7 @@ func (ed *EtcdDriver) Read(key string) string {
 	return string(response.Kvs[0].Value)
 }
 
+//close resource.
 func (ed *EtcdDriver) Close() {
 	_ = ed.client.Close()
 }

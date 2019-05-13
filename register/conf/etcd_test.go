@@ -8,9 +8,7 @@ package conf
 import "testing"
 
 func TestConf_GetDBConf(t *testing.T) {
-
-	driver := CreateEtcdDriver([]string{"127.0.0.1:2379"}, 3, "", "")
-	conf := CreateConf(driver)
+	conf := CreateConf(&EtcdDriver{nil, 3, []string{"127.0.0.1:2379"}, "", ""})
 	dbConfig := conf.GetDBConf("account")
-	println(dbConfig)
+	println(dbConfig.Write.DSN)
 }

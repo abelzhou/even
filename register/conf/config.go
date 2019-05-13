@@ -12,6 +12,7 @@ import (
 )
 
 type ConfigDriver interface {
+	Open()
 	Read(key string) string
 	Close()
 }
@@ -51,6 +52,7 @@ func CreateConf(driver ConfigDriver) *Conf {
 //    [[read]]
 //        dns = "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
 func (c *Conf) GetDBConf(dbtag string) *database.Config {
+	c.driver.Open()
 	defer c.driver.Close()
 	//load default value
 	defMaxActive := 10

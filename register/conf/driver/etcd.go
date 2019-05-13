@@ -3,7 +3,7 @@
    email:abel.zhou@hotmail.com
    date:2019-05-13
 */
-package confdriver
+package conf
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type EtcdDriver struct {
 	client *clientv3.Client
 }
 
-// create etcd driver.
+// create etcd sql.
 // endpoints example: []string{"localhost:2379", "localhost:22379", "localhost:32379"}
 // DialTimeout is second.
 func CreateEtcdDriver(endpoints []string, dialTimeout int, username string, password string) *EtcdDriver {

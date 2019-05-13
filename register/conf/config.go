@@ -6,7 +6,7 @@
 package conf
 
 import (
-	"github.com/AbelZhou/even/database/driver"
+	"github.com/AbelZhou/even/database"
 	"strconv"
 )
 
@@ -49,7 +49,7 @@ func CreateConf(driver ConfigDriver) *Conf {
 //        dns = "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
 //    [[read]]
 //        dns = "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
-func (c *Conf) GetDBConf(dbtag string) *dbdriver.Config {
+func (c *Conf) GetDBConf(dbtag string) *database.Config {
 	defer c.driver.Close()
 	//load default value
 	defMaxActive := 10
@@ -78,7 +78,7 @@ func (c *Conf) GetDBConf(dbtag string) *dbdriver.Config {
 	wirteIdleTimeout, _ := strconv.Atoi(c.driver.Read(prefix + "/write/IdleTimeout"))
 
 	//get read databases.
-	var readers []*dbdriver.DBConfig
+	var readers []*database.DBConfig
 	idx := 0
 	for {
 		readerName := "read" + string(idx)
@@ -89,7 +89,7 @@ func (c *Conf) GetDBConf(dbtag string) *dbdriver.Config {
 		readMaxActive, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/MaxActive"))
 		readMaxIdle, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/MaxIdle"))
 		readIdleTimeout, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/IdleTimeout"))
-		readers = append(readers, &dbdriver.DBConfig{
+		readers = append(readers, &database.DBConfig{
 			DSN:         readDsn,
 			MaxIdle:     readMaxIdle,
 			MaxActive:   readMaxActive,
@@ -98,11 +98,11 @@ func (c *Conf) GetDBConf(dbtag string) *dbdriver.Config {
 		idx++
 	}
 
-	dbConf := &dbdriver.Config{
+	dbConf := &database.Config{
 		DefMaxActive:   defMaxActive,
 		DefMaxIdle:     defMaxIdle,
 		DefIdleTimeout: defIdleTimeout,
-		Write: &dbdriver.DBConfig{
+		Write: &database.DBConfig{
 			DSN:         writeDsn,
 			MaxIdle:     wirteMaxIdle,
 			MaxActive:   writeMaxActive,

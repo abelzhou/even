@@ -3,15 +3,15 @@
    email:abel.zhou@hotmail.com
    date:2019-05-10
 */
-package dbdriver
+package sql
 
 import (
 	"database/sql"
-	goSQLDriver "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 type EvenMySqlDriver struct {
-	goSQLDriver.MySQLDriver
+	mysql.MySQLDriver
 }
 
 func init() {

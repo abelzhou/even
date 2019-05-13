@@ -3,9 +3,10 @@
    email:abel.zhou@hotmail.com
    date:2019-05-10
 */
-package dbdriver
+package sql
 
 import (
+	"github.com/AbelZhou/even/database"
 	"log"
 	"testing"
 	"time"
@@ -23,11 +24,11 @@ CREATE TABLE `usertest` (
 */
 
 func TestCreateMySQLDriver(t *testing.T) {
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
@@ -48,11 +49,11 @@ func TestCreateMySQLDriver(t *testing.T) {
 }
 
 func TestDBAdapter_FetchAll(t *testing.T) {
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
@@ -80,11 +81,11 @@ func TestDBAdapter_Execute(t *testing.T) {
 
 	insertSql := "insert into `usertest` values(null,?,?,?,?)"
 
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
@@ -124,11 +125,11 @@ func TestDBAdapter_Execute(t *testing.T) {
 }
 
 func TestDBAdapter_TransactionRollback(t *testing.T) {
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
@@ -183,11 +184,11 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 }
 
 func BenchmarkCreateMySQLDriver(b *testing.B) {
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},
@@ -211,11 +212,11 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 }
 
 func BenchmarkDBAdapter_Insert(b *testing.B) {
-	var config = &Config{
-		Write: &DBConfig{
+	var config = &database.Config{
+		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 		},
-		Read: []*DBConfig{
+		Read: []*database.DBConfig{
 			{
 				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
 			},

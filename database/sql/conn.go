@@ -3,35 +3,21 @@
    email:abel.zhou@hotmail.com
    date:2019-05-10
 */
-package dbdriver
+package sql
 
 import (
 	"database/sql"
+	"github.com/AbelZhou/even/database"
 	"log"
 	"math/rand"
 	"time"
 )
 
-//Database config
-type DBConfig struct {
-	DSN         string
-	MaxActive   int //Max active connections.
-	MaxIdle     int //Max Idle connections.
-	IdleTimeout int //Second
-}
 
-//Database connect config
-type Config struct {
-	Write          *DBConfig
-	Read           []*DBConfig
-	DefMaxActive   int //Default max active connections.
-	DefMaxIdle     int //Default max idle connections.
-	DefIdleTimeout int //Default idle timeout.Second
-}
 
 //db operator
 type DBAdapter struct {
-	dbConfig             *Config
+	dbConfig             *database.Config
 	writer               *sql.DB
 	reader               []*sql.DB
 	current              *sql.DB //The current database which is operator.
@@ -42,13 +28,13 @@ type DBAdapter struct {
 	executeAffectedCount int64
 }
 
-//create mysql driver.
-func CreateMySqlDriver(config *Config) (db *DBAdapter) {
+//create mysql sql.
+func CreateMySqlDriver(config *database.Config) (db *DBAdapter) {
 	return createDriver(config, "even_mysql")
 }
 
-//create driver.
-func createDriver(config *Config, driverName string) (db *DBAdapter) {
+//create sql.
+func createDriver(config *database.Config, driverName string) (db *DBAdapter) {
 	//format database config
 	configFormat(config)
 
@@ -262,7 +248,7 @@ func (db *DBAdapter) query(preparedSql string, args ...interface{}) (res []map[s
 }
 
 //Progress the database config.
-func configFormat(dbConfig *Config) {
+func configFormat(dbConfig *database.Config) {
 	if dbConfig.Write.MaxActive == 0 {
 		dbConfig.Write.MaxActive = dbConfig.DefMaxActive
 	}

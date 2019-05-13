@@ -227,7 +227,7 @@ func BenchmarkDBAdapter_Insert(b *testing.B) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateMySQLDriver(config)
+	db := CreateMySqlDriver(config)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		insertId, err := db.Execute("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()

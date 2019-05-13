@@ -49,7 +49,7 @@ func CreateConf(driver ConfigDriver) *Conf {
 //        dns = "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
 //    [[read]]
 //        dns = "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local"
-func (c *Conf) GetDBConf(dbtag string) *driver.Config {
+func (c *Conf) GetDBConf(dbtag string) *dbdriver.Config {
 	defer c.driver.Close()
 	//load default value
 	defMaxActive := 10
@@ -78,7 +78,7 @@ func (c *Conf) GetDBConf(dbtag string) *driver.Config {
 	wirteIdleTimeout, _ := strconv.Atoi(c.driver.Read(prefix + "/write/IdleTimeout"))
 
 	//get read databases.
-	var readers []*driver.DBConfig
+	var readers []*dbdriver.DBConfig
 	idx := 0
 	for {
 		readerName := "read" + string(idx)
@@ -89,7 +89,7 @@ func (c *Conf) GetDBConf(dbtag string) *driver.Config {
 		readMaxActive, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/MaxActive"))
 		readMaxIdle, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/MaxIdle"))
 		readIdleTimeout, _ := strconv.Atoi(c.driver.Read(prefix + "/" + readerName + "/IdleTimeout"))
-		readers = append(readers, &driver.DBConfig{
+		readers = append(readers, &dbdriver.DBConfig{
 			DSN:         readDsn,
 			MaxIdle:     readMaxIdle,
 			MaxActive:   readMaxActive,
@@ -98,11 +98,11 @@ func (c *Conf) GetDBConf(dbtag string) *driver.Config {
 		idx++
 	}
 
-	dbConf := &driver.Config{
+	dbConf := &dbdriver.Config{
 		DefMaxActive:   defMaxActive,
 		DefMaxIdle:     defMaxIdle,
 		DefIdleTimeout: defIdleTimeout,
-		Write: &driver.DBConfig{
+		Write: &dbdriver.DBConfig{
 			DSN:         writeDsn,
 			MaxIdle:     wirteMaxIdle,
 			MaxActive:   writeMaxActive,

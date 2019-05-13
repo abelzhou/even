@@ -3,7 +3,7 @@
    email:abel.zhou@hotmail.com
    date:2019-05-13
 */
-package driver
+package confdriver
 
 import (
 	"context"

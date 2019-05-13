@@ -42,7 +42,13 @@ type DBAdapter struct {
 	executeAffectedCount int64
 }
 
+//create mysql driver.
 func CreateMySqlDriver(config *Config) (db *DBAdapter) {
+	return createDriver(config, "even_mysql")
+}
+
+//create driver.
+func createDriver(config *Config, driverName string) (db *DBAdapter) {
 	//format database config
 	configFormat(config)
 
@@ -51,7 +57,7 @@ func CreateMySqlDriver(config *Config) (db *DBAdapter) {
 	}
 
 	//load writer database connections
-	var writerConn, err = sql.Open("even_mysql", config.Write.DSN)
+	var writerConn, err = sql.Open(driverName, config.Write.DSN)
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +73,7 @@ func CreateMySqlDriver(config *Config) (db *DBAdapter) {
 	// load reader database connections.
 	var readerConn []*sql.DB
 	for _, readerConf := range config.Read {
-		reader, err := sql.Open("even_mysql", readerConf.DSN)
+		reader, err := sql.Open(driverName, readerConf.DSN)
 		if err != nil {
 			panic(err)
 		}

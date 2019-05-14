@@ -8,7 +8,9 @@ package conf
 import "testing"
 
 func TestConf_GetDBConf(t *testing.T) {
-	conf := CreateConf(&EtcdDriver{nil, 3, []string{"127.0.0.1:2379"}, "", ""})
+	conf := CreateConf(&EtcdDriver{Endpoints: []string{"127.0.0.1:2379"}, DialTimeout: 3, Username: "", Password: ""})
 	dbConfig := conf.GetDBConf("account")
-	println(dbConfig.Write.DSN)
+	if dbConfig.Write.DSN==""{
+		t.Error("Get database config failed!")
+	}
 }

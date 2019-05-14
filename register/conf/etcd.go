@@ -14,11 +14,11 @@ import (
 // endpoints example: []string{"localhost:2379", "localhost:22379", "localhost:32379"}
 // DialTimeout is second.
 type EtcdDriver struct {
-	client      *clientv3.Client
-	DialTimeout int
 	Endpoints   []string
+	DialTimeout int
 	Username    string
 	Password    string
+	client      *clientv3.Client
 }
 
 //open conn

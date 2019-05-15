@@ -13,19 +13,17 @@ import (
 	"time"
 )
 
-
-
 //db operator
 type DBAdapter struct {
-	dbConfig             *database.Config
-	writer               *sql.DB
-	reader               []*sql.DB
-	current              *sql.DB //The current database which is operator.
-	inTransaction        bool
-	tx                   *sql.Tx
-	executeErr           error
-	executeLastInsertId  int64
-	executeAffectedCount int64
+	dbConfig      *database.Config
+	writer        *sql.DB
+	reader        []*sql.DB
+	current       *sql.DB //The current database which is operator.
+	inTransaction bool
+	tx            *sql.Tx
+	stmt          *sql.Stmt
+	preparedSql   string
+	args          []interface{}
 }
 
 //create mysql sql.
@@ -136,10 +134,18 @@ func (db *DBAdapter) Rollback() (err error) {
 	return nil
 }
 
+// set prepared sql & data
+func (db *DBAdapter) Prepared(sql string, args ...interface{}) *DBAdapter {
+	db.preparedSql = sql
+	db.args = args
+	return db
+}
+
 // get first row.
 // create new prepared statement object in every call.
-func (db *DBAdapter) FetchOne(preparedSql string, args ...interface{}) (res map[string]interface{}, err error) {
-	ress, err := db.query(preparedSql, args...)
+func (db *DBAdapter) FetchOne() (res map[string]interface{}, err error) {
+	defer db.clear()
+	ress, err := db.query(db.preparedSql, db.args...)
 	if err != nil {
 		//process error
 		log.Fatal()
@@ -151,64 +157,44 @@ func (db *DBAdapter) FetchOne(preparedSql string, args ...interface{}) (res map[
 }
 
 //get all rows.
-func (db *DBAdapter) FetchAll(preparedSql string, args ...interface{}) (res []map[string]interface{}, err error) {
-	res, err = db.query(preparedSql, args...)
+func (db *DBAdapter) FetchAll() (res []map[string]interface{}, err error) {
+	defer db.clear()
+	res, err = db.query(db.preparedSql, db.args...)
 	return res, err
-}
-
-//insert in to table
-func (db *DBAdapter) Execute(preparedSql string, args ...interface{}) *DBAdapter {
-	var (
-		stmt *sql.Stmt
-		err  error
-	)
-	if db.inTransaction {
-		stmt, err = db.tx.Prepare(preparedSql)
-	} else {
-		stmt, err = db.current.Prepare(preparedSql)
-	}
-	if err != nil {
-		db.executeErr = err
-		return db
-	}
-
-	defer stmt.Close()
-	result, err := stmt.Exec(args...)
-	if err != nil {
-		db.executeErr = err
-		return db
-	}
-
-	db.executeLastInsertId, err = result.LastInsertId()
-	if err != nil {
-		db.executeErr = err
-	}
-
-	db.executeAffectedCount, err = result.RowsAffected()
-	if err != nil {
-		db.executeErr = err
-	}
-	return db
 }
 
 //get last insert ID.
 func (db *DBAdapter) LastInsertID() (int64, error) {
-	defer func() {
-		db.executeErr = nil
-		db.executeAffectedCount = 0
-		db.executeLastInsertId = 0
-	}()
-	return db.executeLastInsertId, db.executeErr
+	defer db.clear()
+	res, err := db.execute(db.preparedSql, db.args...)
+	if err != nil {
+		return 0, err
+	}
+	lastInsertID, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return lastInsertID, err
 }
 
 //get affected count
 func (db *DBAdapter) AffectedCount() (int64, error) {
-	defer func() {
-		db.executeErr = nil
-		db.executeAffectedCount = 0
-		db.executeLastInsertId = 0
-	}()
-	return db.executeAffectedCount, db.executeErr
+	defer db.clear()
+	res, err := db.execute(db.preparedSql, db.args...)
+	if err != nil {
+		return 0, err
+	}
+	lastInsertID, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return lastInsertID, err
+}
+
+// clear prepared sql and args
+func (db *DBAdapter) clear() {
+	db.preparedSql = ""
+	db.args = nil
 }
 
 //query data
@@ -245,6 +231,30 @@ func (db *DBAdapter) query(preparedSql string, args ...interface{}) (res []map[s
 
 	res, err = buildResultMap(rows, false)
 	return
+}
+
+//execute prepared sql
+func (db *DBAdapter) execute(preparedSql string, args ...interface{}) (sql.Result, error) {
+	var (
+		stmt *sql.Stmt
+		err  error
+	)
+	if db.inTransaction {
+		stmt, err = db.tx.Prepare(preparedSql)
+	} else {
+		stmt, err = db.current.Prepare(preparedSql)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	defer stmt.Close()
+	result, err := stmt.Exec(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
 }
 
 //Progress the database config.
@@ -339,6 +349,5 @@ func buildResultMap(rows *sql.Rows, getFirst bool) (result []map[string]interfac
 			return
 		}
 	}
-
 	return
 }

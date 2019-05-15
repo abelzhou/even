@@ -41,7 +41,7 @@ func TestCreateMySQLDriver(t *testing.T) {
 		DefMaxActive:   20,
 	}
 	db := CreateMySqlDriver(config)
-	res, err := db.FetchOne("SELECT * FROM usertest")
+	res, err := db.Prepared("SELECT * FROM usertest").FetchOne()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestDBAdapter_FetchAll(t *testing.T) {
 		DefMaxActive:   20,
 	}
 	db := CreateMySqlDriver(config)
-	res, err := db.FetchAll("SELECT * FROM `usertest`")
+	res, err := db.Prepared("SELECT * FROM `usertest`").FetchAll()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestDBAdapter_FetchAll(t *testing.T) {
 	}
 }
 
-func TestDBAdapter_Execute(t *testing.T) {
+func TestDBAdapter_Excute(t *testing.T) {
 
 	insertSql := "insert into `usertest` values(null,?,?,?,?)"
 
@@ -99,20 +99,20 @@ func TestDBAdapter_Execute(t *testing.T) {
 	}
 	db := CreateMySqlDriver(config)
 	now := time.Now()
-	id, err := db.Execute(insertSql, "12877717278", "abc", now, now).LastInsertID()
+	id, err := db.Prepared(insertSql, "12877717278", "abc", now, now).LastInsertID()
 	if err != nil {
 		panic(err)
 	}
 	t.Logf("Last insertID %d\n", id)
 
-	user, err := db.FetchOne("SELECT * FROM `usertest`")
+	user, err := db.Prepared("SELECT * FROM `usertest`").FetchOne()
 	if err != nil {
 		panic(err)
 	}
 
 	if user != nil {
 		t.Logf("Find user:id[%d] name[%s]\n", user["id"], user["nickname"])
-		delRes, err := db.Execute("DELETE FROM `usertest` WHERE `id`=?", user["id"]).AffectedCount()
+		delRes, err := db.Prepared("DELETE FROM `usertest` WHERE `id`=?", user["id"]).AffectedCount()
 		if err != nil {
 			panic(err)
 		}
@@ -148,14 +148,14 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 	}
 
 	t.Logf("In transaction:%t \n", db.inTransaction)
-	insertId, err := db.Execute("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
+	insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
 	if err != nil {
 		db.Rollback()
 		panic(err)
 	} else {
 		t.Logf("Insert user:id[%d] \n", insertId)
 	}
-	user, err := db.FetchOne("SELECT * FROM `usertest` WHERE `id`=?", insertId)
+	user, err := db.Prepared("SELECT * FROM `usertest` WHERE `id`=?", insertId).FetchOne()
 	if err != nil {
 		db.Rollback()
 		panic(user)
@@ -172,7 +172,7 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 		t.Errorf("Rollback failed.")
 	}
 
-	checkUser, err := db.FetchOne("SELECT * FROM `usertest` WHERE `id`=?", insertId)
+	checkUser, err := db.Prepared("SELECT * FROM `usertest` WHERE `id`=?", insertId).FetchOne()
 	if err != nil {
 		panic(err)
 	}
@@ -203,7 +203,7 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 	db := CreateMySqlDriver(config)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := db.FetchOne("SELECT * FROM usertest")
+		_, err := db.Prepared("SELECT * FROM usertest").FetchAll()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -231,7 +231,7 @@ func BenchmarkDBAdapter_Insert(b *testing.B) {
 	db := CreateMySqlDriver(config)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		insertId, err := db.Execute("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()
+		insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()
 		if err != nil {
 			panic(err)
 		} else {

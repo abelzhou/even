@@ -6,8 +6,8 @@
 package sql
 
 import (
+	"github.com/AbelZhou/even/cache"
 	"github.com/AbelZhou/even/database"
-	"github.com/AbelZhou/even/database/cache"
 	"log"
 	"testing"
 	"time"

@@ -5,6 +5,8 @@
 */
 package database
 
+import "time"
+
 //Database config
 type DBConfig struct {
 	DSN         string
@@ -20,4 +22,11 @@ type Config struct {
 	DefMaxActive   int //Default max active connections.
 	DefMaxIdle     int //Default max idle connections.
 	DefIdleTimeout int //Default idle timeout.Second
+}
+
+
+type Cache interface {
+	Get(key string) interface{}
+	Set(key string,value interface{}) bool
+	SetWithExpire(key string, value interface{}, expire time.Duration) bool
 }

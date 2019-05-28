@@ -6,7 +6,10 @@
 package sql
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"github.com/AbelZhou/even/database"
 	"log"
 	"math/rand"
@@ -18,7 +21,10 @@ type DBAdapter struct {
 	dbConfig      *database.Config
 	writer        *sql.DB
 	reader        []*sql.DB
-	current       *sql.DB //The current database which is operator.
+	cacher        database.Cache
+	cached        bool
+	cacheExpire   time.Duration // default 60 seconds
+	current       *sql.DB       //The current database which is operator.
 	inTransaction bool
 	tx            *sql.Tx
 	stmt          *sql.Stmt
@@ -27,12 +33,12 @@ type DBAdapter struct {
 }
 
 //create mysql sql.
-func CreateMySqlDriver(config *database.Config) (db *DBAdapter) {
-	return createDriver(config, "even_mysql")
+func CreateMySqlDriver(config *database.Config, cacheEngine database.Cache) (db *DBAdapter) {
+	return createDriver(config, "even_mysql", cacheEngine)
 }
 
 //create sql.
-func createDriver(config *database.Config, driverName string) (db *DBAdapter) {
+func createDriver(config *database.Config, driverName string, cacheEngine database.Cache) (db *DBAdapter) {
 	//format database config
 	configFormat(config)
 
@@ -70,11 +76,20 @@ func createDriver(config *database.Config, driverName string) (db *DBAdapter) {
 		reader.SetMaxOpenConns(readerConf.MaxActive)
 		readerConn = append(readerConn, reader)
 	}
-	return &DBAdapter{dbConfig: config, writer: writerConn, reader: readerConn, inTransaction: false, current: writerConn}
+
+	return &DBAdapter{
+		dbConfig:      config,
+		writer:        writerConn,
+		reader:        readerConn,
+		inTransaction: false,
+		current:       writerConn,
+		cacher:        cacheEngine,
+		cached:        false,
+		cacheExpire:   60 * time.Second}
 }
 
-//Change to slave database connection.
-//All slave database connection are random
+// Change to slave database connection.
+// All slave database connection are random
 func (db *DBAdapter) Slave() (slaveDb *DBAdapter) {
 	if !db.inTransaction && db.current == db.writer {
 		db.current = db.reader[rand.Intn(len(db.reader))]
@@ -82,9 +97,24 @@ func (db *DBAdapter) Slave() (slaveDb *DBAdapter) {
 	return db
 }
 
-//Change to master database connection.
+// Change to master database connection.
 func (db *DBAdapter) Master() (masterDb *DBAdapter) {
 	db.current = db.writer
+	return db
+}
+
+// Query & execute with cache
+func (db *DBAdapter) Cached() *DBAdapter {
+	if !db.inTransaction {
+		db.cached = true
+	}
+	return db
+}
+
+// Query & execute with cache & expire
+func (db *DBAdapter) CachedWithExpire(expire uint) *DBAdapter{
+	db.cached = true
+	db.cacheExpire = time.Duration(expire) * time.Second
 	return db
 }
 
@@ -136,8 +166,12 @@ func (db *DBAdapter) Rollback() (err error) {
 
 // set prepared sql & data
 func (db *DBAdapter) Prepared(sql string, args ...interface{}) *DBAdapter {
+	sql, args = db.beforePrepared(sql, args...)
+
 	db.preparedSql = sql
 	db.args = args
+
+	db.afterPrepared()
 	return db
 }
 
@@ -145,6 +179,13 @@ func (db *DBAdapter) Prepared(sql string, args ...interface{}) *DBAdapter {
 // create new prepared statement object in every call.
 func (db *DBAdapter) FetchOne() (res map[string]interface{}, err error) {
 	defer db.clear()
+
+	// get data from cacher
+	cacheData := db.beforeQuery()
+	if cacheData != nil {
+		return cacheData[0], nil;
+	}
+
 	ress, err := db.query(db.preparedSql, db.args...)
 	if err != nil {
 		//process error
@@ -153,19 +194,30 @@ func (db *DBAdapter) FetchOne() (res map[string]interface{}, err error) {
 	if len(ress) == 0 {
 		return nil, nil
 	}
+	db.afterQuery(ress)
 	return ress[0], nil
 }
 
 //get all rows.
 func (db *DBAdapter) FetchAll() (res []map[string]interface{}, err error) {
 	defer db.clear()
+
+	// get data from cacher
+	cacheData := db.beforeQuery()
+	if cacheData != nil {
+		return cacheData, nil;
+	}
+
 	res, err = db.query(db.preparedSql, db.args...)
+	db.afterQuery(res)
 	return res, err
 }
 
 //get last insert ID.
 func (db *DBAdapter) LastInsertID() (int64, error) {
 	defer db.clear()
+
+	db.beforeExecute()
 	res, err := db.execute(db.preparedSql, db.args...)
 	if err != nil {
 		return 0, err
@@ -174,12 +226,15 @@ func (db *DBAdapter) LastInsertID() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	db.afterExecute()
 	return lastInsertID, err
 }
 
 //get affected count
 func (db *DBAdapter) AffectedCount() (int64, error) {
 	defer db.clear()
+
+	db.beforeExecute()
 	res, err := db.execute(db.preparedSql, db.args...)
 	if err != nil {
 		return 0, err
@@ -188,13 +243,68 @@ func (db *DBAdapter) AffectedCount() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	db.afterExecute()
 	return lastInsertID, err
 }
+
+// hook begin
+func (db *DBAdapter) beforePrepared(sql string, args ...interface{}) (string, []interface{}) {
+
+	return sql, args
+}
+
+func (db *DBAdapter) afterPrepared() {
+
+}
+
+func (db *DBAdapter) beforeQuery() []map[string]interface{} {
+	// get cache data from cacher.
+	var returnData []map[string]interface{}
+	if db.cached {
+		keyHash := hash(append(db.args, db.preparedSql))
+		key := fmt.Sprintf("%x", keyHash)
+		if cacheData := db.cacher.Get(key); cacheData == nil {
+			returnData = nil
+		} else {
+			returnData = cacheData.([]map[string]interface{})
+		}
+	}
+	return returnData
+}
+
+func (db *DBAdapter) afterQuery(queryResult []map[string]interface{}) {
+	if db.cached{
+		keyHash := hash(append(db.args, db.preparedSql))
+		key := fmt.Sprintf("%x", keyHash)
+		_ = db.cacher.SetWithExpire(key, queryResult, db.cacheExpire)
+	}
+}
+
+func (db *DBAdapter) beforeExecute() {
+
+}
+
+func (db *DBAdapter) afterExecute() {
+
+}
+
+func hash(arr []interface{}) [16]byte {
+	var arrBytes []byte
+	for _, item := range arr {
+		jsonBytes, _ := json.Marshal(item)
+		arrBytes = append(arrBytes, jsonBytes...)
+	}
+	return md5.Sum(arrBytes)
+}
+
+// hook end
 
 // clear prepared sql and args
 func (db *DBAdapter) clear() {
 	db.preparedSql = ""
 	db.args = nil
+	db.cached = false
+	db.cacheExpire = 60 * time.Second
 }
 
 //query data

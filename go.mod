@@ -3,6 +3,7 @@ module github.com/AbelZhou/even
 go 1.12
 
 require (
+	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect

@@ -13,18 +13,15 @@ import (
 	"github.com/AbelZhou/even/database"
 	"log"
 	"math/rand"
-	"time"
 )
 
 //db operator
 type DBAdapter struct {
-	dbConfig      *database.Config
-	writer        *sql.DB
-	reader        []*sql.DB
+	connector     *Connector
 	cacher        database.Cache
 	cached        bool
-	cacheExpire   time.Duration // default 60 seconds
-	current       *sql.DB       //The current database which is operator.
+	cacheExpire   int32   // default 60 seconds
+	current       *sql.DB //The current database which is operator.
 	inTransaction bool
 	tx            *sql.Tx
 	stmt          *sql.Stmt
@@ -32,74 +29,31 @@ type DBAdapter struct {
 	args          []interface{}
 }
 
-//create mysql sql.
-func CreateMySqlDriver(config *database.Config, cacheEngine database.Cache) (db *DBAdapter) {
-	return createDriver(config, "even_mysql", cacheEngine)
-}
 
-//create sql.
-func createDriver(config *database.Config, driverName string, cacheEngine database.Cache) (db *DBAdapter) {
-	//format database config
-	configFormat(config)
-
-	if config.Read == nil {
-		config.Read[0] = config.Write
-	}
-
-	//load writer database connections
-	var writerConn, err = sql.Open(driverName, config.Write.DSN)
-	if err != nil {
-		panic(err)
-	}
-
-	err = writerConn.Ping()
-	if err != nil {
-		panic(err)
-	}
-	writerConn.SetMaxOpenConns(config.Write.MaxActive)
-	writerConn.SetMaxIdleConns(config.Write.MaxIdle)
-	writerConn.SetConnMaxLifetime(time.Duration(config.Write.IdleTimeout) * time.Second)
-
-	// load reader database connections.
-	var readerConn []*sql.DB
-	for _, readerConf := range config.Read {
-		reader, err := sql.Open(driverName, readerConf.DSN)
-		if err != nil {
-			panic(err)
-		}
-		err = reader.Ping()
-		if err != nil {
-			panic(err)
-		}
-		reader.SetConnMaxLifetime(time.Duration(readerConf.IdleTimeout) * time.Second)
-		reader.SetMaxIdleConns(readerConf.MaxIdle)
-		reader.SetMaxOpenConns(readerConf.MaxActive)
-		readerConn = append(readerConn, reader)
-	}
-
+//create sql database adapter.
+func CreateDriver(connector *Connector, cacheEngine database.Cache) (db *DBAdapter) {
 	return &DBAdapter{
-		dbConfig:      config,
-		writer:        writerConn,
-		reader:        readerConn,
+		connector:     connector,
 		inTransaction: false,
-		current:       writerConn,
+		current:       connector.writer,
 		cacher:        cacheEngine,
 		cached:        false,
-		cacheExpire:   60 * time.Second}
+		cacheExpire:   60,
+	}
 }
 
 // Change to slave database connection.
 // All slave database connection are random
 func (db *DBAdapter) Slave() (slaveDb *DBAdapter) {
-	if !db.inTransaction && db.current == db.writer {
-		db.current = db.reader[rand.Intn(len(db.reader))]
+	if !db.inTransaction && db.current == db.connector.writer {
+		db.current = db.connector.reader[rand.Intn(len(db.connector.reader))]
 	}
 	return db
 }
 
 // Change to master database connection.
 func (db *DBAdapter) Master() (masterDb *DBAdapter) {
-	db.current = db.writer
+	db.current = db.connector.writer
 	return db
 }
 
@@ -112,9 +66,11 @@ func (db *DBAdapter) Cached() *DBAdapter {
 }
 
 // Query & execute with cache & expire
-func (db *DBAdapter) CachedWithExpire(expire uint) *DBAdapter{
-	db.cached = true
-	db.cacheExpire = time.Duration(expire) * time.Second
+func (db *DBAdapter) CachedWithExpire(expire int32) *DBAdapter {
+	if !db.inTransaction {
+		db.cached = true
+		db.cacheExpire = expire
+	}
 	return db
 }
 
@@ -273,7 +229,7 @@ func (db *DBAdapter) beforeQuery() []map[string]interface{} {
 }
 
 func (db *DBAdapter) afterQuery(queryResult []map[string]interface{}) {
-	if db.cached{
+	if db.cached {
 		keyHash := hash(append(db.args, db.preparedSql))
 		key := fmt.Sprintf("%x", keyHash)
 		_ = db.cacher.SetWithExpire(key, queryResult, db.cacheExpire)
@@ -304,7 +260,7 @@ func (db *DBAdapter) clear() {
 	db.preparedSql = ""
 	db.args = nil
 	db.cached = false
-	db.cacheExpire = 60 * time.Second
+	db.cacheExpire = 60
 }
 
 //query data
@@ -365,31 +321,6 @@ func (db *DBAdapter) execute(preparedSql string, args ...interface{}) (sql.Resul
 	}
 
 	return result, err
-}
-
-//Progress the database config.
-func configFormat(dbConfig *database.Config) {
-	if dbConfig.Write.MaxActive == 0 {
-		dbConfig.Write.MaxActive = dbConfig.DefMaxActive
-	}
-	if dbConfig.Write.MaxIdle == 0 {
-		dbConfig.Write.MaxIdle = dbConfig.DefMaxIdle
-	}
-	if dbConfig.Write.IdleTimeout == 0 {
-		dbConfig.Write.IdleTimeout = dbConfig.DefIdleTimeout
-	}
-
-	for i := 0; i < len(dbConfig.Read); i++ {
-		if dbConfig.Read[i].MaxActive == 0 {
-			dbConfig.Read[i].MaxActive = dbConfig.DefMaxActive
-		}
-		if dbConfig.Read[i].MaxIdle == 0 {
-			dbConfig.Read[i].MaxIdle = dbConfig.DefMaxIdle
-		}
-		if dbConfig.Read[i].IdleTimeout == 0 {
-			dbConfig.Read[i].IdleTimeout = dbConfig.DefIdleTimeout
-		}
-	}
 }
 
 func buildResultMap(rows *sql.Rows, getFirst bool) (result []map[string]interface{}, err error) {

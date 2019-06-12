@@ -15,6 +15,7 @@ import (
 	"math/rand"
 )
 
+
 //db operator
 type DBAdapter struct {
 	connector     *Connector
@@ -28,7 +29,6 @@ type DBAdapter struct {
 	preparedSql   string
 	args          []interface{}
 }
-
 
 //create sql database adapter.
 func CreateDriver(connector *Connector, cacheEngine database.Cache) (db *DBAdapter) {
@@ -142,7 +142,7 @@ func (db *DBAdapter) FetchOne() (res map[string]interface{}, err error) {
 		return cacheData[0], nil;
 	}
 
-	ress, err := db.query(db.preparedSql, db.args...)
+	ress, err := db.query()
 	if err != nil {
 		//process error
 		log.Fatal()
@@ -164,7 +164,7 @@ func (db *DBAdapter) FetchAll() (res []map[string]interface{}, err error) {
 		return cacheData, nil;
 	}
 
-	res, err = db.query(db.preparedSql, db.args...)
+	res, err = db.query()
 	db.afterQuery(res)
 	return res, err
 }
@@ -174,7 +174,7 @@ func (db *DBAdapter) LastInsertID() (int64, error) {
 	defer db.clear()
 
 	db.beforeExecute()
-	res, err := db.execute(db.preparedSql, db.args...)
+	res, err := db.execute()
 	if err != nil {
 		return 0, err
 	}
@@ -191,21 +191,20 @@ func (db *DBAdapter) AffectedCount() (int64, error) {
 	defer db.clear()
 
 	db.beforeExecute()
-	res, err := db.execute(db.preparedSql, db.args...)
+	res, err := db.execute()
 	if err != nil {
 		return 0, err
 	}
-	lastInsertID, err := res.LastInsertId()
+	affectedCount, err := res.RowsAffected()
 	if err != nil {
 		return 0, err
 	}
 	db.afterExecute()
-	return lastInsertID, err
+	return affectedCount, err
 }
 
 // hook begin
 func (db *DBAdapter) beforePrepared(sql string, args ...interface{}) (string, []interface{}) {
-
 	return sql, args
 }
 
@@ -264,16 +263,20 @@ func (db *DBAdapter) clear() {
 }
 
 //query data
-func (db *DBAdapter) query(preparedSql string, args ...interface{}) (res []map[string]interface{}, err error) {
+func (db *DBAdapter) query() (res []map[string]interface{}, err error) {
+	if db.preparedSql == "" {
+		return nil, ERR_NOPREPARED
+	}
+
 	var (
 		stmt *sql.Stmt
 		rows *sql.Rows
 	)
 	//create new statement pointer
 	if db.inTransaction {
-		stmt, err = db.tx.Prepare(preparedSql)
+		stmt, err = db.tx.Prepare(db.preparedSql)
 	} else {
-		stmt, err = db.current.Prepare(preparedSql)
+		stmt, err = db.current.Prepare(db.preparedSql)
 	}
 
 	if err != nil {
@@ -282,10 +285,10 @@ func (db *DBAdapter) query(preparedSql string, args ...interface{}) (res []map[s
 	defer stmt.Close()
 
 	//logic
-	if len(args) == 0 {
+	if len(db.args) == 0 {
 		rows, err = stmt.Query()
 	} else {
-		rows, err = stmt.Query(args...)
+		rows, err = stmt.Query(db.args...)
 	}
 
 	if err != nil {
@@ -300,22 +303,26 @@ func (db *DBAdapter) query(preparedSql string, args ...interface{}) (res []map[s
 }
 
 //execute prepared sql
-func (db *DBAdapter) execute(preparedSql string, args ...interface{}) (sql.Result, error) {
+func (db *DBAdapter) execute() (sql.Result, error) {
+	if db.preparedSql == "" {
+		return nil, ERR_NOPREPARED
+	}
+
 	var (
 		stmt *sql.Stmt
 		err  error
 	)
 	if db.inTransaction {
-		stmt, err = db.tx.Prepare(preparedSql)
+		stmt, err = db.tx.Prepare(db.preparedSql)
 	} else {
-		stmt, err = db.current.Prepare(preparedSql)
+		stmt, err = db.current.Prepare(db.preparedSql)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	defer stmt.Close()
-	result, err := stmt.Exec(args...)
+	result, err := stmt.Exec(db.args...)
 	if err != nil {
 		return nil, err
 	}

@@ -119,7 +119,7 @@ func TestDBAdapter_Excute(t *testing.T) {
 		if delRes == 1 {
 			t.Logf("Delete success.Affected count:%d.\n", delRes)
 		} else {
-			t.Logf("Delete failed.Affected count:%d.\n", delRes)
+			t.Errorf("Delete failed.Affected count:%d userid:%d.\n", delRes,user["id"])
 		}
 	}
 }

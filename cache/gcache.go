@@ -40,8 +40,8 @@ func (c *GCache) Set(key string, value interface{}) bool {
 }
 
 // set something with expire
-func (c *GCache) SetWithExpire(key string, value interface{}, expire time.Duration) bool {
-	err := c.gc.SetWithExpire(key, value, expire)
+func (c *GCache) SetWithExpire(key string, value interface{}, expire int32) bool {
+	err := c.gc.SetWithExpire(key, value, time.Duration(expire)*time.Second)
 	if err != nil {
 		return false
 	}

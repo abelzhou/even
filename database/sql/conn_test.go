@@ -6,6 +6,7 @@
 package sql
 
 import (
+	"github.com/AbelZhou/even/cache"
 	"github.com/AbelZhou/even/database"
 	"log"
 	"testing"
@@ -183,67 +184,67 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 	}
 }
 
-//func TestDBAdapter_Cached(t *testing.T) {
-//	var config = &database.Config{
-//		Write: &database.DBConfig{
-//			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-//		},
-//		Read: []*database.DBConfig{
-//			{
-//				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-//			},
-//			{
-//				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-//			},
-//		},
-//		DefIdleTimeout: 200,
-//		DefMaxIdle:     10,
-//		DefMaxActive:   20,
-//	}
-//	//cacher := cache.NewGCache(1024)
-//	cacher := cache.NewMemcahce([]string{"127.0.0.1:11211"})
-//	db := CreateDriver(NewMySQLConnector(config), cacher)
-//
-//	now := time.Now()
-//	insertSql := "insert into `usertest` values(null,?,?,?,?)"
-//	id1, err := db.Prepared(insertSql, "12877717277", "abc", now, now).LastInsertID()
-//
-//	user, err := db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
-//	if err != nil {
-//		panic(err)
-//	}
-//	if user["id"].(int64) == id1 {
-//		t.Logf("select success.UID:%d", user["id"])
-//	}
-//
-//	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
-//	if err != nil {
-//		panic(err)
-//	}
-//	log.Printf("%s",reflect.TypeOf(user["id"]))
-//	if user["id"].(int64) == id1 {
-//		t.Logf("select success.UID:%d", user["id"])
-//	}
-//
-//	id2, err := db.Prepared(insertSql, "12877717279", "abc", now, now).LastInsertID()
-//	//other data
-//	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
-//	if err != nil {
-//		panic(err)
-//	}
-//	if user["id"].(int64) == id2 {
-//		t.Logf("select success.UID:%d", user["id"])
-//	}
-//
-//	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
-//	if err != nil {
-//		panic(err)
-//	}
-//	if user["id"].(int64) == id2 {
-//		t.Logf("select success.UID:%d", user["id"])
-//	}
-//
-//}
+func TestDBAdapter_Cached(t *testing.T) {
+	var config = &database.Config{
+		Write: &database.DBConfig{
+			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+		},
+		Read: []*database.DBConfig{
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+		},
+		DefIdleTimeout: 200,
+		DefMaxIdle:     10,
+		DefMaxActive:   20,
+	}
+	//cacher := cache.NewGCache(1024)
+	cacher := cache.NewMemcahce([]string{"127.0.0.1:11211"})
+	db := CreateDriver(NewMySQLConnector(config), cacher)
+
+	now := time.Now()
+	insertSql := "insert into `usertest` values(null,?,?,?,?)"
+	id1, err := db.Prepared(insertSql, "12877717277", "abc", now, now).LastInsertID()
+
+	user, err := db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
+	if err != nil {
+		panic(err)
+	}
+	if user["id"].(int64) == id1 {
+		t.Logf("select success.UID:%d", user["id"])
+	}
+
+	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
+	if err != nil {
+		panic(err)
+	}
+	//log.Printf("%s",reflect.TypeOf(user["id"]))
+	if user["id"].(int64) == id1 {
+		t.Logf("select success.UID:%d", user["id"])
+	}
+
+	id2, err := db.Prepared(insertSql, "12877717279", "abc", now, now).LastInsertID()
+	//other data
+	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
+	if err != nil {
+		panic(err)
+	}
+	if user["id"].(int64) == id2 {
+		t.Logf("select success.UID:%d", user["id"])
+	}
+
+	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
+	if err != nil {
+		panic(err)
+	}
+	if user["id"].(int64) == id2 {
+		t.Logf("select success.UID:%d", user["id"])
+	}
+
+}
 
 func BenchmarkCreateMySQLDriver(b *testing.B) {
 	var config = &database.Config{

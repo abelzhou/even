@@ -5,8 +5,6 @@
 */
 package database
 
-import "time"
-
 //Database config
 type DBConfig struct {
 	DSN         string
@@ -28,5 +26,5 @@ type Config struct {
 type Cache interface {
 	Get(key string) interface{}
 	Set(key string,value interface{}) bool
-	SetWithExpire(key string, value interface{}, expire time.Duration) bool
+	SetWithExpire(key string, value interface{}, expire int32) bool
 }

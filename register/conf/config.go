@@ -117,7 +117,8 @@ func (c *Conf) GetDBConf(dbtag string) *database.Config {
 }
 
 // get memcache config
-
+// example:
+// /cacheconf/account/memcache0/DSN "127.0.0.1:11211"
 func (c *Conf) GetMemcacheConf(cacheTag string) []string {
 	var memcacheConf []string
 
@@ -131,6 +132,6 @@ func (c *Conf) GetMemcacheConf(cacheTag string) []string {
 		memcacheConf = append(memcacheConf, memcacheDSN)
 		idx++
 	}
-	
+
 	return memcacheConf
 }

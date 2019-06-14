@@ -115,3 +115,22 @@ func (c *Conf) GetDBConf(dbtag string) *database.Config {
 	}
 	return dbConf
 }
+
+// get memcache config
+
+func (c *Conf) GetMemcacheConf(cacheTag string) []string {
+	var memcacheConf []string
+
+	idx := 0
+	for {
+		key := fmt.Sprintf("/cacheconf/%s/memcache%d/DSN", cacheTag)
+		memcacheDSN := c.driver.Read(key)
+		if memcacheDSN == "" {
+			break
+		}
+		memcacheConf = append(memcacheConf, memcacheDSN)
+		idx++
+	}
+	
+	return memcacheConf
+}

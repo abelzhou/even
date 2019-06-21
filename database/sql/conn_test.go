@@ -120,7 +120,7 @@ func TestDBAdapter_Excute(t *testing.T) {
 		if delRes == 1 {
 			t.Logf("Delete success.Affected count:%d.\n", delRes)
 		} else {
-			t.Errorf("Delete failed.Affected count:%d userid:%d.\n", delRes,user["id"])
+			t.Errorf("Delete failed.Affected count:%d userid:%d.\n", delRes, user["id"])
 		}
 	}
 }
@@ -242,6 +242,65 @@ func TestDBAdapter_Cached(t *testing.T) {
 	}
 	if user["id"].(int64) == id2 {
 		t.Logf("select success.UID:%d", user["id"])
+	}
+}
+
+type Usertest struct {
+	Id         int64
+	Mobile     string
+	Nickname   string
+	CreateTime time.Time `db:"create_time"`
+	UpdateTime time.Time `db:"update_time"`
+}
+
+func TestDBAdapter_Scan(t *testing.T) {
+
+	var config = &database.Config{
+		Write: &database.DBConfig{
+			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+		},
+		Read: []*database.DBConfig{
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+		},
+		DefIdleTimeout: 200,
+		DefMaxIdle:     10,
+		DefMaxActive:   20,
+	}
+	//cacher := cache.NewMemcahce([]string{"127.0.0.1:11211"})
+	db := CreateDriver(NewMySQLConnector(config), nil)
+
+	now := time.Now()
+	insertSql := "insert into `usertest` values(null,?,?,?,?)"
+	id1, err := db.Prepared(insertSql, "12877717277", "scanOne", now, now).LastInsertID()
+
+	var u1 Usertest
+	if err = db.Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).ScanOne(&u1); err != nil {
+		t.Error(err.Error())
+	}
+
+	if u1.Nickname == "scanOne" {
+		t.Logf("Success the nickname is \"%s\",time is %s", u1.Nickname, u1.UpdateTime)
+	}
+
+	//var u2 Usertest
+	//if err = db.Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).ScanOne(&u2); err != nil {
+	//	t.Error(err.Error())
+	//} else {
+	//	t.Logf("Cache success the nickname is \"%s\",time is %s", u2.Nickname, u2.UpdateTime)
+	//}
+
+	var ulist []Usertest
+	if err = db.Prepared("SELECT * FROM `usertest` LIMIT 20").ScanAll(&ulist); err != nil {
+		t.Error(err.Error())
+	} else {
+		for i := 0; i < len(ulist); i++ {
+			t.Logf("SUCCESS id:%d create_time:%s",ulist[i].Id,ulist[i].CreateTime)
+		}
 	}
 
 }

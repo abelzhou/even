@@ -5,8 +5,6 @@
 ├── kv
 │   ├── redis
 │   └── rocks
-├── orm
-│   └── orm.go
 └── sql
     ├── conn.go  //数据操作
     ├── conn_test.go 
@@ -15,3 +13,6 @@
     └── mysql.go //mysql driver
 ```  
 
+
+## 这是一个数据库处理包  
+起初是有orm的设定，但因为在实际项目操作的过程中，orm不具备给DBA输出sql的能力所以放弃了。

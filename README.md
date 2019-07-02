@@ -6,8 +6,8 @@
 ├── database #数据库
 │   ├── kv #redis
 │   └── sql # mysql/oracle
-├── register #注册中心
-│   └── conf #配置中心
+└── register #注册中心
+    └── conf #配置中心
 ```
 
 

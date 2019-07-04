@@ -83,7 +83,8 @@ Create Driver
     affectedCount, err := db.Prepared("DELETE FROM `usertest` WHERE `id`=?", 1).AffectedCount()
 ```
 
-事务
+事务  
+> 一旦启用事务，会强制使用写库
 ```go
     if err := db.Begin(); err != nil {
     		//

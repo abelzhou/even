@@ -12,11 +12,19 @@
 
 
 ## 特性
--[x] 读写分离   
--[x] 缓存
--[x] 配置中心  
--[ ] 服务发现
+DB
+-[x] 支持Map[string]interface{}数据返回方式  
+-[x] 支持Scan方式数据返回  
 
+Cache
+-[x] Memcache  
+-[x] Gcache  
+
+配置中心  
+-[x] etcd  
+
+服务中心  
+-[ ] 服务发现  
 
 
 
@@ -39,7 +47,8 @@ Create Driver
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+    
 
 ```
 
@@ -47,6 +56,7 @@ Create Driver
 > Fetch 获取的结果均以map[string]interface{} 或者 []map[string]interface{} 类型返回  
 > FetchOne 只会获得查询结果的第一条记录  
 ```go
+    db := conns.Slave() //获得读库链接 
     user, err := db.Prepared("SELECT * FROM users").FetchOne()
     users,err = db.Prepared("SELECT * FROM users").FetchAll()
 ```  
@@ -65,6 +75,7 @@ Create Driver
     var user Users
     var users []Users
 
+    db := conns.Slave()
     user, err := db.Prepared("SELECT * FROM users").ScanOne(&user)
     users,err := db.Prepared("SELECT * FROM users").ScanAll(&users)
 
@@ -73,19 +84,22 @@ Create Driver
 切换主从
 > 默认为主库
 ```go
+    db := conns.Slave()
     user, err := db.Slave().Prepared("SELECT * FROM users").FetchOne()
     users,err := db.Master().Prepared("SELECT * FROM users").FetchAll()
 ```
 
 增删改
 ```go
+    db := conns.Master()
     insertId,err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
     affectedCount, err := db.Prepared("DELETE FROM `usertest` WHERE `id`=?", 1).AffectedCount()
 ```
 
 事务  
-> 一旦启用事务，会强制使用写库
+> 只有写库才能开启事务
 ```go
+    db := conns.Master()
     if err := db.Begin(); err != nil {
     		//
     }

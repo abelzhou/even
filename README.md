@@ -12,11 +12,11 @@
 
 
 ## 特性
-DB
+DB  
 -[x] 支持Map[string]interface{}数据返回方式  
 -[x] 支持Scan方式数据返回  
 
-Cache
+Cache  
 -[x] Memcache  
 -[x] Gcache  
 
@@ -79,14 +79,6 @@ Create Driver
     user, err := db.Prepared("SELECT * FROM users").ScanOne(&user)
     users,err := db.Prepared("SELECT * FROM users").ScanAll(&users)
 
-```
-
-切换主从
-> 默认为主库
-```go
-    db := conns.Slave()
-    user, err := db.Slave().Prepared("SELECT * FROM users").FetchOne()
-    users,err := db.Master().Prepared("SELECT * FROM users").FetchAll()
 ```
 
 增删改

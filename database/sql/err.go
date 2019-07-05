@@ -16,3 +16,5 @@ var ERR_MUSTNOTBESLICE = errors.New("Must not be a slice.")
 var ERR_MUSTBESLICE = errors.New("Must be a slice.")
 
 var ERR_MUSTBEPOINTER = errors.New("Must be a pointer.")
+
+var ERR_READERTRANSACTION = errors.New("The transaction must in a writer connection.")

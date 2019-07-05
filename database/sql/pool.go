@@ -8,20 +8,15 @@ package sql
 import (
 	"database/sql"
 	"github.com/AbelZhou/even/database"
+	"math/rand"
 	"time"
 )
 
-type Connector struct {
-	dbConfig *database.Config
-	writer   *sql.DB
-	reader   []*sql.DB
+func NewMySQLPool(config *database.Config) *ConnPool {
+	return NewPool(config, "even_mysql");
 }
 
-func NewMySQLConnector(config *database.Config) *Connector{
-	return NewConnecter(config,"even_mysql");
-}
-
-func NewConnecter(config *database.Config, driverName string) *Connector {
+func NewPool(config *database.Config, driverName string) *ConnPool {
 	//format database config
 	configFormat(config)
 
@@ -60,7 +55,7 @@ func NewConnecter(config *database.Config, driverName string) *Connector {
 		readerConn = append(readerConn, reader)
 	}
 
-	return &Connector{
+	return &ConnPool{
 		dbConfig: config,
 		writer:   writerConn,
 		reader:   readerConn,
@@ -89,5 +84,27 @@ func configFormat(dbConfig *database.Config) {
 		if dbConfig.Read[i].IdleTimeout == 0 {
 			dbConfig.Read[i].IdleTimeout = dbConfig.DefIdleTimeout
 		}
+	}
+}
+
+type ConnPool struct {
+	dbConfig *database.Config
+	writer   *sql.DB
+	reader   []*sql.DB
+}
+
+func (pool *ConnPool) Master() *Conn {
+	return &Conn{
+		db:            pool.writer,
+		inTransaction: false,
+		isReader:false,
+	}
+}
+
+func (pool *ConnPool) Slave() *Conn {
+	return &Conn{
+		db:            pool.reader[rand.Intn(len(pool.reader))],
+		inTransaction: false,
+		isReader:true,
 	}
 }

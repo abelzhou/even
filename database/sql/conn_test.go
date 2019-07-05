@@ -6,9 +6,9 @@
 package sql
 
 import (
-	"github.com/AbelZhou/even/cache"
 	"github.com/AbelZhou/even/database"
 	"log"
+	"sync"
 	"testing"
 	"time"
 )
@@ -41,7 +41,8 @@ func TestCreateMySQLDriver(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 	res, err := db.Prepared("SELECT * FROM usertest").FetchOne()
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +67,8 @@ func TestDBAdapter_FetchAll(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 	res, err := db.Prepared("SELECT * FROM `usertest`").FetchAll()
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +100,8 @@ func TestDBAdapter_Excute(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 	now := time.Now()
 	id, err := db.Prepared(insertSql, "12877717278", "abc", now, now).LastInsertID()
 	if err != nil {
@@ -142,7 +145,8 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 
 	if err := db.Begin(); err != nil {
 		panic(err)
@@ -184,67 +188,6 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 	}
 }
 
-func TestDBAdapter_Cached(t *testing.T) {
-	var config = &database.Config{
-		Write: &database.DBConfig{
-			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-		},
-		Read: []*database.DBConfig{
-			{
-				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-			},
-			{
-				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
-			},
-		},
-		DefIdleTimeout: 200,
-		DefMaxIdle:     10,
-		DefMaxActive:   20,
-	}
-	//cacher := cache.NewGCache(1024)
-	cacher := cache.NewMemcahce([]string{"127.0.0.1:11211"})
-	db := CreateDriver(NewMySQLConnector(config), cacher)
-
-	now := time.Now()
-	insertSql := "insert into `usertest` values(null,?,?,?,?)"
-	id1, err := db.Prepared(insertSql, "12877717277", "abc", now, now).LastInsertID()
-
-	user, err := db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
-	if err != nil {
-		panic(err)
-	}
-	if user["id"].(int64) == id1 {
-		t.Logf("select success.UID:%d", user["id"])
-	}
-
-	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id1).FetchOne()
-	if err != nil {
-		panic(err)
-	}
-	//log.Printf("%s",reflect.TypeOf(user["id"]))
-	if user["id"].(int64) == id1 {
-		t.Logf("select success.UID:%d", user["id"])
-	}
-
-	id2, err := db.Prepared(insertSql, "12877717279", "abc", now, now).LastInsertID()
-	//other data
-	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
-	if err != nil {
-		panic(err)
-	}
-	if user["id"].(int64) == id2 {
-		t.Logf("select success.UID:%d", user["id"])
-	}
-
-	user, err = db.CachedWithExpire(120).Prepared("SELECT * FROM `usertest` WHERE `id`=?", id2).FetchOne()
-	if err != nil {
-		panic(err)
-	}
-	if user["id"].(int64) == id2 {
-		t.Logf("select success.UID:%d", user["id"])
-	}
-}
-
 type Usertest struct {
 	Id         int64
 	Mobile     string
@@ -272,7 +215,8 @@ func TestDBAdapter_Scan(t *testing.T) {
 		DefMaxActive:   20,
 	}
 	//cacher := cache.NewMemcahce([]string{"127.0.0.1:11211"})
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 
 	now := time.Now()
 	insertSql := "insert into `usertest` values(null,?,?,?,?)"
@@ -299,10 +243,49 @@ func TestDBAdapter_Scan(t *testing.T) {
 		t.Error(err.Error())
 	} else {
 		for i := 0; i < len(ulist); i++ {
-			t.Logf("SUCCESS id:%d create_time:%s",ulist[i].Id,ulist[i].CreateTime)
+			t.Logf("SUCCESS id:%d create_time:%s", ulist[i].Id, ulist[i].CreateTime)
 		}
 	}
 
+}
+
+var wg sync.WaitGroup
+
+func TestDBAdapter_Goroutine(t *testing.T) {
+	var config = &database.Config{
+		Write: &database.DBConfig{
+			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+		},
+		Read: []*database.DBConfig{
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+			{
+				DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
+			},
+		},
+		DefIdleTimeout: 200,
+		DefMaxIdle:     10,
+		DefMaxActive:   20,
+	}
+
+	conns := NewMySQLPool(config)
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			t.Logf("%d \n", i)
+			db := conns.Master()
+			db.Begin()
+			user, err := db.Prepared("SELECT * FROM `usertest` LIMIT 1").FetchOne()
+			if err != nil {
+				panic(err)
+			}
+			t.Logf("%d:%t:%v\n", i, db.inTransaction, user)
+			db.Commit()
+		}(i)
+	}
+	wg.Wait()
 }
 
 func BenchmarkCreateMySQLDriver(b *testing.B) {
@@ -322,7 +305,8 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := db.Prepared("SELECT * FROM usertest").FetchAll()
@@ -350,7 +334,8 @@ func BenchmarkDBAdapter_Insert(b *testing.B) {
 		DefMaxIdle:     10,
 		DefMaxActive:   20,
 	}
-	db := CreateDriver(NewMySQLConnector(config), nil)
+	conns := NewMySQLPool(config)
+	db := conns.Master()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()

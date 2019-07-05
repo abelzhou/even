@@ -84,7 +84,7 @@ Create Driver
 增删改
 ```go
     db := conns.Master()
-    insertId,err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
+    insertId,err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600000000", "RbTest", time.Now(), time.Now()).LastInsertID()
     affectedCount, err := db.Prepared("DELETE FROM `usertest` WHERE `id`=?", 1).AffectedCount()
 ```
 
@@ -96,7 +96,7 @@ Create Driver
     		//
     }
     
-    insertId,err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
+    insertId,err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600000000", "RbTest", time.Now(), time.Now()).LastInsertID()
     if err!=nil || insertId==0{
     	db.Rollback()
     }

@@ -153,7 +153,7 @@ func TestDBAdapter_TransactionRollback(t *testing.T) {
 	}
 
 	t.Logf("In transaction:%t \n", db.inTransaction)
-	insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "RbTest", time.Now(), time.Now()).LastInsertID()
+	insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600000000", "RbTest", time.Now(), time.Now()).LastInsertID()
 	if err != nil {
 		db.Rollback()
 		panic(err)
@@ -338,7 +338,7 @@ func BenchmarkDBAdapter_Insert(b *testing.B) {
 	db := conns.Master()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600019873", "BmTest", time.Now(), time.Now()).LastInsertID()
+		insertId, err := db.Prepared("INSERT INTO `usertest` values (null,?,?,?,?)", "18600000000", "BmTest", time.Now(), time.Now()).LastInsertID()
 		if err != nil {
 			panic(err)
 		} else {

@@ -8,6 +8,7 @@ package sql
 import (
 	"github.com/AbelZhou/even/database"
 	"log"
+	_ "runtime/pprof"
 	"sync"
 	"testing"
 	"time"
@@ -50,7 +51,7 @@ func TestCreateMySQLDriver(t *testing.T) {
 	t.Logf("%s\n", res["nickname"])
 }
 
-func TestDBAdapter_FetchAll(t *testing.T) {
+func TestDB_FetchAll(t *testing.T) {
 	var config = &database.Config{
 		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
@@ -80,7 +81,7 @@ func TestDBAdapter_FetchAll(t *testing.T) {
 	}
 }
 
-func TestDBAdapter_Excute(t *testing.T) {
+func TestDB_Excute(t *testing.T) {
 
 	insertSql := "insert into `usertest` values(null,?,?,?,?)"
 
@@ -128,7 +129,7 @@ func TestDBAdapter_Excute(t *testing.T) {
 	}
 }
 
-func TestDBAdapter_TransactionRollback(t *testing.T) {
+func TestDB_TransactionRollback(t *testing.T) {
 	var config = &database.Config{
 		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
@@ -196,7 +197,7 @@ type Usertest struct {
 	UpdateTime time.Time `db:"update_time"`
 }
 
-func TestDBAdapter_Scan(t *testing.T) {
+func TestDB_Scan(t *testing.T) {
 
 	var config = &database.Config{
 		Write: &database.DBConfig{
@@ -251,7 +252,7 @@ func TestDBAdapter_Scan(t *testing.T) {
 
 var wg sync.WaitGroup
 
-func TestDBAdapter_Goroutine(t *testing.T) {
+func TestDB_Goroutine(t *testing.T) {
 	var config = &database.Config{
 		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
@@ -288,7 +289,7 @@ func TestDBAdapter_Goroutine(t *testing.T) {
 	wg.Wait()
 }
 
-func BenchmarkCreateMySQLDriver(b *testing.B) {
+func BenchmarkDB_Select(b *testing.B) {
 	var config = &database.Config{
 		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",
@@ -317,7 +318,7 @@ func BenchmarkCreateMySQLDriver(b *testing.B) {
 
 }
 
-func BenchmarkDBAdapter_Insert(b *testing.B) {
+func BenchmarkDB_Insert(b *testing.B) {
 	var config = &database.Config{
 		Write: &database.DBConfig{
 			DSN: "abel:123456@tcp(127.0.0.1:3306)/test?charset=utf8mb4&parseTime=true&loc=Local",

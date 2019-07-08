@@ -2,15 +2,15 @@
 
 ```shell
 ├── conf.go
+├── dsl
 ├── kv
 │   ├── redis
 │   └── rocks
 └── sql
-    ├── conn.go  //数据操作
-    ├── conn_test.go 
-    ├── connector.go //数据连接对象
-    ├── err.go //错误const
-    └── mysql.go //mysql driver
+    ├── conn.go       #数据连接
+    ├── err.go        #define err
+    ├── mysql.go      #mysql Driver
+    └── pool.go       #连接池
 ```  
 
 
